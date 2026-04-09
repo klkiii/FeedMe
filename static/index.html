@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FeedMe — Free Food Finder</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #0a0a0a;
+    --white: #f5f2eb;
+    --cream: #ede9df;
+    --accent: #e85d2f;
+    --accent2: #2f7ee8;
+    --muted: #888078;
+    --card-bg: #ffffff;
+    --border: #ddd8cc;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--white);
+    color: var(--black);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ── */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--black);
+    padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 56px;
+    border-bottom: 2px solid var(--accent);
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 0.08em;
+    color: var(--white);
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.4); opacity: 0.7; }
+  }
+
+  .header-stats {
+    display: flex; gap: 1.5rem; align-items: center;
+  }
+
+  .stat {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .stat span {
+    color: var(--white);
+    font-weight: 500;
+    margin-left: 4px;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    background: var(--black);
+    padding: 3rem 2rem 2.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::after {
+    content: 'FEEDME';
+    position: absolute;
+    right: -20px; top: -20px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 180px;
+    color: rgba(255,255,255,0.03);
+    pointer-events: none;
+    line-height: 1;
+    user-select: none;
+  }
+
+  .hero h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 8vw, 96px);
+    color: var(--white);
+    line-height: 0.9;
+    letter-spacing: 0.02em;
+  }
+
+  .hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+    display: block;
+  }
+
+  .hero p {
+    margin-top: 1rem;
+    color: var(--muted);
+    font-size: 15px;
+    max-width: 460px;
+    line-height: 1.6;
+  }
+
+  /* ── Filters ── */
+  .filter-bar {
+    background: var(--cream);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 2rem;
+    display: flex; gap: 8px; align-items: center;
+    flex-wrap: wrap;
+    position: sticky; top: 56px; z-index: 90;
+  }
+
+  .filter-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-right: 4px;
+  }
+
+  .chip {
+    padding: 5px 14px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--black);
+  }
+
+  .chip:hover { background: var(--black); color: var(--white); border-color: var(--black); }
+  .chip.active { background: var(--accent); color: var(--white); border-color: var(--accent); }
+
+  /* ── Main layout ── */
+  main { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+  /* ── Calendar grid ── */
+  .calendar-section { margin-bottom: 3rem; }
+
+  .month-header {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 1rem;
+  }
+
+  .month-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  /* ── Event card ── */
+  .event-card {
+    background: var(--card-bg);
+    padding: 1.25rem;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex; flex-direction: column; gap: 10px;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .event-card:hover { background: #faf9f6; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .event-card.has-food {
+    border-top: 3px solid var(--accent);
+  }
+
+  .event-card.is-free {
+    border-top: 3px solid #22c55e;
+  }
+
+  .event-card.has-food.is-free {
+    border-top: 3px solid var(--accent);
+  }
+
+  .card-top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+
+  .date-block {
+    text-align: center;
+    min-width: 44px;
+  }
+
+  .date-day {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    line-height: 1;
+    color: var(--black);
+  }
+
+  .date-month {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+  }
+
+  .tags {
+    display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end;
+  }
+
+  .tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+  }
+
+  .tag.food { background: #fee2d0; color: #b03a12; }
+  .tag.free { background: #dcfce7; color: #15803d; }
+  .tag.paid { background: #e0e7ff; color: #3730a3; }
+
+  .event-title {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--black);
+  }
+
+  .event-meta {
+    display: flex; flex-direction: column; gap: 3px;
+  }
+
+  .meta-row {
+    font-size: 12px;
+    color: var(--muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .meta-row svg { flex-shrink: 0; }
+
+  .card-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  .club-name {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .view-link {
+    font-size: 11px;
+    color: var(--accent2);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: color 0.15s;
+  }
+
+  .view-link:hover { color: var(--black); }
+
+  /* ── Empty / Loading ── */
+  .loading, .empty {
+    text-align: center;
+    padding: 5rem 2rem;
+    color: var(--muted);
+  }
+
+  .loading-spinner {
+    width: 32px; height: 32px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 1rem;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  /* ── No date section ── */
+  .tbc-section { margin-top: 2rem; }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    header { padding: 0 1rem; }
+    .hero { padding: 2rem 1rem 1.5rem; }
+    .filter-bar { padding: 0.75rem 1rem; }
+    main { padding: 1rem; }
+    .header-stats { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    FeedMe
+  </div>
+  <div class="header-stats">
+    <div class="stat">Events <span id="total-count">—</span></div>
+    <div class="stat">Free food <span id="food-count">—</span></div>
+    <div class="stat">Free entry <span id="free-count">—</span></div>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>Free food<em>finder.</em></h1>
+  <p>Tracking Adelaide Uni club events so you never miss a free feed.</p>
+</div>
+
+<div class="filter-bar">
+  <span class="filter-label">Filter</span>
+  <button class="chip active" data-filter="all">All events</button>
+  <button class="chip" data-filter="food">🍕 Free food</button>
+  <button class="chip" data-filter="free">✅ Free entry</button>
+  <button class="chip" data-filter="paid">💰 Paid</button>
+</div>
+
+<main id="main-content">
+  <div class="loading">
+    <div class="loading-spinner"></div>
+    <p>Loading events...</p>
+  </div>
+</main>
+
+<script>
+  let allEvents = [];
+  let activeFilter = 'all';
+
+  // ── Fetch events from API ──
+  async function loadEvents() {
+    try {
+      const res = await fetch('/api/events');
+      allEvents = await res.json();
+
+      // If nothing came back, fall back to all events (date parsing might be off)
+      if (allEvents.length === 0) {
+        const res2 = await fetch('/api/events/all');
+        allEvents = await res2.json();
+        if (allEvents.length > 0) {
+          document.getElementById('main-content').insertAdjacentHTML('afterbegin',
+            '<div style="background:#fef3c7;padding:0.75rem 1.25rem;font-size:13px;color:#92400e;margin-bottom:1rem">⚠️ Showing all events — some dates could not be parsed. Check <a href="/api/debug" target="_blank">/api/debug</a> to diagnose.</div>'
+          );
+        }
+      }
+
+      renderStats();
+      renderEvents();
+    } catch (e) {
+      document.getElementById('main-content').innerHTML = `
+        <div class="empty">
+          <span class="empty-icon">⚠️</span>
+          <p>Could not load events. Make sure the Flask server is running.</p>
+        </div>`;
+    }
+  }
+
+  // ── Stats bar ──
+  function renderStats() {
+    document.getElementById('total-count').textContent = allEvents.length;
+    document.getElementById('food-count').textContent = allEvents.filter(e => e.free_food).length;
+    document.getElementById('free-count').textContent = allEvents.filter(e => !e.is_paid).length;
+  }
+
+  // ── Parse a rough date from date_text ──
+  function parseDate(dateText) {
+    if (!dateText) return null;
+    const now = new Date();
+    const d = new Date(dateText);
+    if (!isNaN(d)) return d;
+
+    // Try to extract month names
+    const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+    const lower = dateText.toLowerCase();
+    for (let i = 0; i < months.length; i++) {
+      if (lower.includes(months[i])) {
+        const numMatch = lower.match(/\d+/);
+        if (numMatch) {
+          const day = parseInt(numMatch[0]);
+          const year = now.getFullYear();
+          return new Date(year, i, day);
+        }
+      }
+    }
+    return null;
+  }
+
+  function formatDay(d) { return d.getDate(); }
+  function formatMonth(d) { return d.toLocaleString('default', { month: 'short' }).toUpperCase(); }
+  function formatMonthYear(d) { return d.toLocaleString('default', { month: 'long', year: 'numeric' }); }
+
+  // ── Filter events ──
+  function filteredEvents() {
+    return allEvents.filter(e => {
+      if (activeFilter === 'food') return e.free_food;
+      if (activeFilter === 'free') return !e.is_paid;
+      if (activeFilter === 'paid') return e.is_paid;
+      return true;
+    });
+  }
+
+  // ── Render a single event card ──
+  function renderCard(event, delay) {
+    const date = parseDate(event.date_text);
+    const classes = ['event-card',
+      event.free_food ? 'has-food' : '',
+      !event.is_paid ? 'is-free' : ''
+    ].filter(Boolean).join(' ');
+
+    const dateHtml = date
+      ? `<div class="date-block">
+           <div class="date-day">${formatDay(date)}</div>
+           <div class="date-month">${formatMonth(date)}</div>
+         </div>`
+      : `<div class="date-block">
+           <div class="date-day" style="font-size:18px;color:var(--muted)">TBC</div>
+         </div>`;
+
+    const tags = [];
+    if (event.free_food) tags.push(`<span class="tag food">🍕 ${event.food_desc || 'Free food'}</span>`);
+    if (!event.is_paid) tags.push(`<span class="tag free">Free entry</span>`);
+    if (event.is_paid && event.price) tags.push(`<span class="tag paid">💰 ${event.price}</span>`);
+
+    return `
+      <div class="${classes}" style="animation-delay:${delay}ms">
+        <div class="card-top">
+          ${dateHtml}
+          <div class="tags">${tags.join('')}</div>
+        </div>
+        <div class="event-title">${event.title || 'Untitled Event'}</div>
+        <div class="event-meta">
+          ${event.location ? `
+            <div class="meta-row">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              ${event.location}
+            </div>` : ''}
+          ${event.date_text ? `
+            <div class="meta-row">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              ${event.date_text}
+            </div>` : ''}
+        </div>
+        <div class="card-footer">
+          <span class="club-name">@${event.club}</span>
+          <a class="view-link" href="${event.post_url}" target="_blank">View post →</a>
+        </div>
+      </div>`;
+  }
+
+  // ── Render all events grouped by month ──
+  function renderEvents() {
+    const events = filteredEvents();
+    const main = document.getElementById('main-content');
+
+    if (events.length === 0) {
+      main.innerHTML = `
+        <div class="empty">
+          <span class="empty-icon">🍽️</span>
+          <p>No events match this filter yet.</p>
+        </div>`;
+      return;
+    }
+
+    // Split into dated and undated
+    const dated = events.filter(e => parseDate(e.date_text));
+    const undated = events.filter(e => !parseDate(e.date_text));
+
+    // Group dated by month
+    const byMonth = {};
+    dated.forEach(e => {
+      const d = parseDate(e.date_text);
+      const key = formatMonthYear(d);
+      if (!byMonth[key]) byMonth[key] = [];
+      byMonth[key].push(e);
+    });
+
+    let html = '';
+    let delay = 0;
+
+    Object.entries(byMonth).forEach(([month, evs]) => {
+      html += `<div class="calendar-section">
+        <div class="month-header">${month}</div>
+        <div class="events-grid">
+          ${evs.map(e => renderCard(e, delay += 40)).join('')}
+        </div>
+      </div>`;
+    });
+
+    if (undated.length > 0) {
+      html += `<div class="tbc-section">
+        <div class="month-header">Date TBC</div>
+        <div class="events-grid">
+          ${undated.map(e => renderCard(e, delay += 40)).join('')}
+        </div>
+      </div>`;
+    }
+
+    main.innerHTML = html;
+  }
+
+  // ── Filter chips ──
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      activeFilter = chip.dataset.filter;
+      renderEvents();
+    });
+  });
+
+  loadEvents();
+</script>
+</body>
+</html>

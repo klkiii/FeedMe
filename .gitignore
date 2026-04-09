@@ -1,3 +1,15 @@
+# Only app.py, static/, requirements.txt, Procfile, railway.json go to GitHub
+ 
+# Local scraper files — run locally only
+main.py
+config.py
+instagram.py
+parser.py
+database.py
+login.py
+debug_image.py
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
