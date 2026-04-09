@@ -1,7 +1,3 @@
-"""
-FeedMe — Flask backend
-Run: python app.py
-"""
 import os
 import re
 import psycopg2
@@ -10,7 +6,6 @@ from flask import Flask, jsonify
 from datetime import datetime, timedelta
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
-
 app = Flask(__name__, static_folder="static", static_url_path="")
 
 
@@ -22,17 +17,35 @@ def parse_date_for_sort(date_text):
     if not date_text:
         return datetime.max
 
-    # Strip time portion AND anything after comma (handles ", null", ", 6pm", etc.)
-    cleaned = date_text.split(",")[0].strip()
+    s = date_text
+
+    # Strip parenthetical notes: "(time not specified)", "(date/time not specified)"
+    s = re.sub(r'\(.*?\)', '', s).strip()
+
+    # If time comes before date like "Wednesday 10:30AM - 11:30AM, 8 April 2026"
+    # swap: grab the date part after the last comma
+    if re.search(r'\d{1,2}:\d{2}', s.split(',')[0]):
+        parts = s.split(',')
+        if len(parts) >= 2:
+            s = parts[-1].strip()
+
+    # Strip everything after comma (times, notes)
+    s = s.split(',')[0].strip()
 
     # Strip ordinal suffixes: 29th → 29
-    cleaned = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', cleaned)
+    s = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', s)
 
-    # Strip day names: "Thursday 12 March 2026" → "12 March 2026"
-    cleaned = re.sub(r'^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+', '', cleaned, flags=re.IGNORECASE).strip()
+    # Strip day names
+    s = re.sub(r'^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+', '', s, flags=re.IGNORECASE).strip()
 
-    # Strip any remaining "null" words
-    if 'null' in cleaned.lower() or not cleaned:
+    # Strip time portions like "10:30AM", "6pm", "12pm–5pm"
+    s = re.sub(r'\s+\d{1,2}(:\d{2})?\s*(am|pm|AM|PM)', '', s).strip()
+    s = re.sub(r'\s+\d{1,2}(:\d{2})?(am|pm|AM|PM)', '', s).strip()
+
+    # Handle DD/MM/YYYY or DD/MM/YY
+    s = re.sub(r'(\d{1,2})/(\d{1,2})/(\d{2,4})', lambda m: f"{m.group(1).zfill(2)}/{m.group(2).zfill(2)}/{m.group(3) if len(m.group(3))==4 else '20'+m.group(3)}", s)
+
+    if not s or 'null' in s.lower():
         return datetime.max
 
     formats = [
@@ -43,12 +56,12 @@ def parse_date_for_sort(date_text):
         "%d/%m/%Y",   # 12/03/2026
         "%Y-%m-%d",   # 2026-03-12
         "%B %Y",      # March 2026
-        "%b %Y",      # Mar 2026
+        "%b %Y",      # Apr 2026
     ]
 
     for fmt in formats:
         try:
-            return datetime.strptime(cleaned, fmt)
+            return datetime.strptime(s.strip(), fmt)
         except ValueError:
             continue
 
@@ -73,7 +86,6 @@ def get_events(filter_past=True):
     rows.sort(key=lambda e: e["_parsed_date"])
 
     if filter_past:
-        # Use yesterday so today's events are always included
         cutoff = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
         rows = [r for r in rows if r["_parsed_date"] >= cutoff]
 
